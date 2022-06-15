@@ -122,8 +122,10 @@ class individual:
         # para verificar si aumentar o no la similarity
         if (packet in packets and packet in packetsR): # si ambos estan
             self.similarity = self.similarity + 1
-        elif(packet not in packets and packet not in packetsR): # si ambos no estan
-            self.similarity = self.similarity + 1
+        # El profe dijo que si ambos no apuestan puede ser por razones totalmente distintas,
+        # por lo que podriamos no aumentar su similaridad al comparar su fitness
+        #elif(packet not in packets and packet not in packetsR): # si ambos no estan (podria estar mal)
+        #   self.similarity = self.similarity + 1
 
     def choosePackets(self, fMarkov = []):
         """Elegir apuesta individuo.
@@ -677,7 +679,8 @@ while(True):
                 for j in i.population: # aplicamos la penalización
                     # Por el momento NO HAY UN FACTOR ALPHA como hiperparametro
                     # fit = fitOriginal - penalizacion
-                    j.fitness = j.fitness - alfaPenalizacion * j.similarity
+                    #j.fitness = j.fitness - alfaPenalizacion * j.similarity
+                    j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/10)
                     if(j.similarity > 8): # agregue un contador por curiosidad nms
                         contadorSimilaridadAlta = contadorSimilaridadAlta + 1
                         #print("similaridad muy alta: " + str(j.similarity))
