@@ -215,6 +215,7 @@ class model:
         self.repose = False
         self.timeActive = 0
         self.fitnessHistory = []
+        self.similarityHistory = []
 
     def __repr__(self):
         return str(self.population)
@@ -484,22 +485,30 @@ def evaluatePop(model = None):
     
     if grafico=="promedio":
         totalFitness = 0
+        totalSimilarity = 0
         for i in model.population:
             totalFitness = totalFitness + i.fitness
+            totalSimilarity = totalSimilarity + i.similarity
         totalFitness = totalFitness/len(model.population)
+        totalSimilarity = totalSimilarity/len(model.population)
     
     elif grafico=="elite":
         totalFitness = 0
+        totalSimilarity = 0
         for i in range(int(len(model.population)*percentageElitism)):
             totalFitness = totalFitness + model.population[i].fitness
+            totalSimilarity = totalSimilarity + model.population[i].similarity
         totalFitness = totalFitness/int(len(model.population)*percentageElitism)
+        totalSimilarity = totalSimilarity/int(len(model.population)*percentageElitism)
     
     else:
         totalFitness = -1    
+        totalSimilarity = -1    
         if(model.memory != None):
             totalFitness = model.memory.fitness
+            totalSimilarity = model.memory.similarity
 
-    return totalFitness
+    return totalFitness, totalSimilarity
 
 def attack(listFitness,models = None):
     """Evaluar posible ataque".
@@ -550,6 +559,7 @@ currentFile = file1
 ticks = 0 
 
 fitnessHistory = []
+similarityHistory = []
 
 lastPacket = None
 
@@ -572,7 +582,8 @@ while(True):
         legend = []
         num = 0
         for i in models: # hay 2 modelos, agentes n y agentes r
-            plt.plot(i.fitnessHistory)
+            #plt.plot(i.fitnessHistory)
+            plt.plot(i.similarityHistory)
             legend.append(i.type)
             #print(i.fitnessHistory)
             file = "biblioteca" + str(num) + ".txt" # llamo al fichero
@@ -624,6 +635,7 @@ while(True):
             if ataqueModel == None:
                 ataqueModel = model(pop = copy.deepcopy(selfModel.population), modelType = "ataque")
                 ataqueModel.fitnessHistory = fitnessHistory
+                ataqueModel.similarityHistory = similarityHistory
                 nonSelfModels.append(ataqueModel)
                 models = selfModels + nonSelfModels
             else:
@@ -643,12 +655,14 @@ while(True):
         #print(selfModel)
         #input()
         for i in models:
-            medianFitness = evaluatePop(i)
+            medianFitness, medianSimilarity = evaluatePop(i)
             if ataqueModel == None:
                 fitnessHistory.append(-1)
+                similarityHistory.append(-1)
             #Evaporamos la feromona de las poblaciones
             i.evaporate(evaporationRate)
-            i.fitnessHistory.append(medianFitness)            
+            i.fitnessHistory.append(medianFitness)       
+            i.similarityHistory.append(medianSimilarity)             
         
         for i in models:
             if not i.repose and i.timeActive>=100:
