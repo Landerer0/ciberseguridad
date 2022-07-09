@@ -114,14 +114,14 @@ class individual:
         if packet in packets or (packet not in self.genes.keys() and "*" in packets):
             self.fitness = self.fitness + 1  
 
-        #calculo de self.similarity
-        if(packetsR is None): # esto es un manejo de errores
-            return
+            #calculo de self.similarity
+            if(packetsR is None): # esto es un manejo de errores
+                return
+            # aplico "and" entre el fitness del packet y el de la biblioteca de agentes r
+            # para verificar si aumentar o no la similarity
+            if (packet in packetsR): # (packet not in self.genes.keys() and "*" in packets) si ambos predicen bien se aumenta la similarity
+                self.similarity = self.similarity + 1    
 
-        # aplico "xor" entre el fitness del packet y el de la biblioteca de agentes r
-        # para verificar si aumentar o no la similarity
-        if (packet in packets and packet in packetsR): # si ambos estan
-            self.similarity = self.similarity + 1
         # El profe dijo que si ambos no apuestan puede ser por razones totalmente distintas,
         # por lo que podriamos no aumentar su similaridad al comparar su fitness
         #elif(packet not in packets and packet not in packetsR): # si ambos no estan (podria estar mal)
@@ -584,8 +584,9 @@ while(True):
         legend = []
         num = 0
         for i in models: # hay 2 modelos, agentes n y agentes r
-            #plt.plot(i.fitnessHistory)
-            plt.plot(i.similarityHistory)
+            # AQUI ALGUIEN PODRIA HACER QUE APAREZCAN LOS DOS GRAFICOS A LA VEZ
+            plt.plot(i.fitnessHistory)
+            #plt.plot(i.similarityHistory)
             legend.append(i.type)
             #print(i.fitnessHistory)
             file = "biblioteca" + str(num) + ".txt" # llamo al fichero
@@ -599,7 +600,8 @@ while(True):
                 for k in j.genes: # obtengo la matriz de markov del agente
                     f.write( "{}\n" .format(j.genes[k]) )
                 # por el momento data.json es dnd guardo la biblioteca de agentes r
-                a_file = open("data.json", "w") 
+                a_file = open("data.json", "w") #EN ESTE JSON SE GUARDA LA MMARKOV
+                # Si se quiere obtener una nueva matriz de markov descomentar esta linea
                 json.dump(j.genes, a_file)
                 a_file.close()
                 break # para asegurarse de solo obtener/rescatar 1 matriz de markov
@@ -626,6 +628,7 @@ while(True):
     packetsR = choosePacketsR(lastPacket) # aqui es donde calculanos los paquetes a considerar
                                           # segun la bilbioteca de agentes r, lo hacemos aca 
                                           # para no tener que calcularlo varias veces
+    #packetsR = None
     for i in models:
         #Alimentamos a el/los modelos
         i.feedPop(packet, lastPacket, packetsR)# FEEDPOP ES DONDE SE DETERMINA EL FITNESS
@@ -677,9 +680,10 @@ while(True):
             #Aplicamos la penalización segun similarity en caso de ser agentes n
             if(i.type == "normal"):
                 for j in i.population: # aplicamos la penalización
-                    # Por el momento NO HAY UN FACTOR ALPHA como hiperparametro
                     # fit = fitOriginal - penalizacion
                     #j.fitness = j.fitness - alfaPenalizacion * j.similarity
+                    # fitness siempre tiene que ser POSITIVO
+                    # investigar como hipertunear parametro alfaPenalización
                     j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/10)
                     if(j.similarity > 8): # agregue un contador por curiosidad nms
                         contadorSimilaridadAlta = contadorSimilaridadAlta + 1
