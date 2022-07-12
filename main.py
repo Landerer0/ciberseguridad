@@ -583,6 +583,8 @@ while(True):
         print("Parece que se terminó el archivo")
         legend = []
         num = 0
+        fig, (ax1, ax2) = plt.subplots(2, 1)
+        fig.suptitle('Fitness y Similaridad')
         fitness = [0, 0]
         similarity = [0, 0]
         count = 0
@@ -616,21 +618,28 @@ while(True):
                 break # para asegurarse de solo obtener/rescatar 1 matriz de markov
 
             f.close()
+
+        ax1.plot(fitness[0])
+        ax1.plot(fitness[1])
+        ax1.legend(legend)
+        ax2.plot(similarity[0])
+        ax2.plot(similarity[1])
+        ax2.legend(legend)
+        fig.savefig('graficosJuntos.png')
+        plt.show()
         plt.plot(fitness[0])
         plt.plot(fitness[1])
         plt.title("Normalidad vs Ataque fitness")
         plt.legend(legend)
         plt.savefig('graficoFitness.png')
-        plt.show()
+        #plt.show()
         plt.plot(similarity[0])
         plt.plot(similarity[1])
         plt.title("Normalidad vs Ataque similarity")
         plt.legend(legend)
         plt.savefig('graficoSimilarity.png')
-        plt.show()
+        #plt.show()
         #print(models)
-        
-
         exit(0)
 
     if(packet in packetList):
