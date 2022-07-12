@@ -583,10 +583,19 @@ while(True):
         print("Parece que se terminó el archivo")
         legend = []
         num = 0
+        fitness = [0, 0]
+        similarity = [0, 0]
+        count = 0
+        fitnessFigure = plt.figure(1)
+        similarityFigure = plt.figure(2)
+        
         for i in models: # hay 2 modelos, agentes n y agentes r
             # AQUI ALGUIEN PODRIA HACER QUE APAREZCAN LOS DOS GRAFICOS A LA VEZ
-            plt.plot(i.fitnessHistory)
-            #plt.plot(i.similarityHistory)
+            fitness[count] = (i.fitnessHistory)
+            similarity[count] = (i.similarityHistory)
+            count = count + 1
+            #fitnessFigure.plot(i.fitnessHistory)
+            #similarityFigure.plot(i.similarityHistory)
             legend.append(i.type)
             #print(i.fitnessHistory)
             file = "biblioteca" + str(num) + ".txt" # llamo al fichero
@@ -607,8 +616,17 @@ while(True):
                 break # para asegurarse de solo obtener/rescatar 1 matriz de markov
 
             f.close()
-        plt.title("Normalidad vs Ataque")
+        plt.plot(fitness[0])
+        plt.plot(fitness[1])
+        plt.title("Normalidad vs Ataque fitness")
         plt.legend(legend)
+        plt.savefig('graficoFitness.png')
+        plt.show()
+        plt.plot(similarity[0])
+        plt.plot(similarity[1])
+        plt.title("Normalidad vs Ataque similarity")
+        plt.legend(legend)
+        plt.savefig('graficoSimilarity.png')
         plt.show()
         #print(models)
         
@@ -684,7 +702,8 @@ while(True):
                     #j.fitness = j.fitness - alfaPenalizacion * j.similarity
                     # fitness siempre tiene que ser POSITIVO
                     # investigar como hipertunear parametro alfaPenalización
-                    j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/10)
+                    numIteraciones = 10
+                    j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/numIteraciones)
                     if(j.similarity > 8): # agregue un contador por curiosidad nms
                         contadorSimilaridadAlta = contadorSimilaridadAlta + 1
                         #print("similaridad muy alta: " + str(j.similarity))
