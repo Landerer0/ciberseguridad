@@ -24,7 +24,13 @@ packetList = {}
 a_file = open("data.json", "r")
 ## PARÁMETROS BIBLIOTECA DE AGENTES R
 mMarkovR = json.load(a_file) # fMarkovR es la matriz de markov de la biblioteca de agentes R 
-alfaPenalizacion = 0.4 # se refiere a cuanto penalizar segun la similitud entre los agentes n y 
+# Rango de valores posibles de alfaPenalización [0,1[
+#   Con 0.99 se penaliza mucho
+#   Con 0.5 se distingue poco entre la normalidad y ataque
+#   Entre 0.1 y 0.2 funciona decente 
+#   Valores muy cercanos a 0 no afectan mucho al modelo, por lo que se parece como si no existiera la
+#   Penalización
+alfaPenalizacion = 0.15 # se refiere a cuanto penalizar segun la similitud entre los agentes n y 
                        #la biblioteca de agentes r en la funcion de penalizacion 
 ## FIN PARÁMETROS BIBLIOTECA DE AGENTES R
 a_file.close()
@@ -117,15 +123,9 @@ class individual:
             #calculo de self.similarity
             if(packetsR is None): # esto es un manejo de errores
                 return
-            # aplico "and" entre el fitness del packet y el de la biblioteca de agentes r
-            # para verificar si aumentar o no la similarity
-            if (packet in packetsR): # (packet not in self.genes.keys() and "*" in packets) si ambos predicen bien se aumenta la similarity
+            # reviso si mi biblioteca aumento su fitness
+            if (packet in packetsR or (packet not in mMarkovR.keys() and "*" in packetsR)) :
                 self.similarity = self.similarity + 1    
-
-        # El profe dijo que si ambos no apuestan puede ser por razones totalmente distintas,
-        # por lo que podriamos no aumentar su similaridad al comparar su fitness
-        #elif(packet not in packets and packet not in packetsR): # si ambos no estan (podria estar mal)
-        #   self.similarity = self.similarity + 1
 
     def choosePackets(self, fMarkov = []):
         """Elegir apuesta individuo.
@@ -565,7 +565,9 @@ similarityHistory = []
 
 lastPacket = None
 
+# Inicia ejecución
 while(True):
+    # Se progresa al siguiente paquete
     ticks = ticks + 1
     models = selfModels + nonSelfModels
     if(ticks % 100 == 0):
@@ -579,7 +581,7 @@ while(True):
     #Leemos y procesamos el siguiente paquete
     packet = parsePacket(currentFile)
     if(packet == ""):
-        # AQUI TERMINA EL CODIGO
+        # AQUI TERMINA EL CODIGO, pues no quedan paquetes a analizar
         print("Parece que se terminó el archivo")
         legend = []
         num = 0
@@ -647,13 +649,11 @@ while(True):
     else:
         packetList[packet] = 1
            
-    # el packet anterior y nosotros que adivinar cual es el packet siguiente
-    # si le achuntamos aumentamos el fitness en 1
-    # choose packets es como nosotros predecimos cual es el packet que va a venir
-    # lo que vamos a hacer es indicarla a nuestra biblioteca de agentes r el ultimo packet
-    # y nos va a retornar su prediccion
+    # Ahora se calcula el fitness y similarity de cada iteración, 
+    # para ello se incorpora una predicción denominada
+    # choosePacketsR, en la cual se predice el paquete que nuestra biblioteca elegiria 
     packetsR = choosePacketsR(lastPacket) # aqui es donde calculanos los paquetes a considerar
-                                          # segun la bilbioteca de agentes r, lo hacemos aca 
+                                          # segun la bilbioteca de agentes r, re realiza aquí 
                                           # para no tener que calcularlo varias veces
     #packetsR = None
     for i in models:
@@ -686,8 +686,24 @@ while(True):
         #print(ticks)
         #print(selfModel)
         #input()
+        
         for i in models:
-            medianFitness, medianSimilarity = evaluatePop(i)
+            #Aplicamos la penalización segun similarity en caso de ser agentes n
+            if(i.type == "normal"):
+                for j in i.population: # aplicamos la penalización
+                    # fit = fitOriginal - penalizacion
+                    #j.fitness = j.fitness - alfaPenalizacion * j.similarity
+                    # fitness siempre tiene que ser POSITIVO
+                    # investigar como hipertunear parametro alfaPenalización
+                    numIteraciones = 10
+                    j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/numIteraciones)
+                #medianFitness, medianSimilarity = evaluatePop(i)
+                #if ticks < 1000:
+                #    print("Fitness " + str(medianFitness) + " Similarity " + str(medianSimilarity))
+                if i.memory != None:
+                    i.memory.fitness = i.memory.fitness - i.memory.similarity
+
+            medianFitness, medianSimilarity = evaluatePop(i) # se modifico para incluir similarity
             if ataqueModel == None:
                 fitnessHistory.append(-1)
                 similarityHistory.append(-1)
@@ -701,27 +717,28 @@ while(True):
                 if attack(i.fitnessHistory) and ticks > newMemory*2:
                     print("EN ATAQUE "+str(i.alertLevel)+" "+i.type+" "+str(i.timeActive))
                     i.addFeromone(feromoneAdded)
-    
+        
         #Realizamos la seleccion de padres
         for i in models:
-            #Aplicamos la penalización segun similarity en caso de ser agentes n
-            if(i.type == "normal"):
-                for j in i.population: # aplicamos la penalización
-                    # fit = fitOriginal - penalizacion
-                    #j.fitness = j.fitness - alfaPenalizacion * j.similarity
-                    # fitness siempre tiene que ser POSITIVO
-                    # investigar como hipertunear parametro alfaPenalización
-                    numIteraciones = 10
-                    j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/numIteraciones)
-                    if(j.similarity > 8): # agregue un contador por curiosidad nms
-                        contadorSimilaridadAlta = contadorSimilaridadAlta + 1
-                        #print("similaridad muy alta: " + str(j.similarity))
-                if i.memory != None:
-                    i.memory.fitness = i.memory.fitness - i.memory.similarity
-                print(contadorSimilaridadAlta)
-                contadorSimilaridadAlta = 0
+
             
             #antes de ejecutar esto DEBERIAMOS EVALUAR LA FUNCION DE PENALIZACION
+            '''
+            medianFitness, medianSimilarity = evaluatePop(i) # se modifico para incluir similarity
+            if ataqueModel == None:
+                fitnessHistory.append(-1)
+                similarityHistory.append(-1)
+            #Evaporamos la feromona de las poblaciones
+            i.evaporate(evaporationRate)
+            i.fitnessHistory.append(medianFitness)       
+            i.similarityHistory.append(medianSimilarity)  
+            
+            if not i.repose and i.timeActive>=100:
+                if attack(i.fitnessHistory) and ticks > newMemory*2:
+                    print("EN ATAQUE "+str(i.alertLevel)+" "+i.type+" "+str(i.timeActive))
+                    i.addFeromone(feromoneAdded)
+            '''
+
             if not i.repose:
                 parentsSize = int(len(i.population)*(1-percentageElitism))*2
                 parents = i.selectParents(parentsSize if parentsSize%2==0 else parentsSize+1)
