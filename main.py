@@ -590,11 +590,8 @@ while(True):
         fitness = [0, 0]
         similarity = [0, 0]
         count = 0
-        fitnessFigure = plt.figure(1)
-        similarityFigure = plt.figure(2)
         
         for i in models: # hay 2 modelos, agentes n y agentes r
-            # AQUI ALGUIEN PODRIA HACER QUE APAREZCAN LOS DOS GRAFICOS A LA VEZ
             fitness[count] = (i.fitnessHistory)
             similarity[count] = (i.similarityHistory)
             count = count + 1
@@ -691,15 +688,8 @@ while(True):
             #Aplicamos la penalización segun similarity en caso de ser agentes n
             if(i.type == "normal"):
                 for j in i.population: # aplicamos la penalización
-                    # fit = fitOriginal - penalizacion
-                    #j.fitness = j.fitness - alfaPenalizacion * j.similarity
+                    j.fitness = j.fitness - alfaPenalizacion * j.similarity
                     # fitness siempre tiene que ser POSITIVO
-                    # investigar como hipertunear parametro alfaPenalización
-                    numIteraciones = 10
-                    j.fitness = j.fitness * (1-alfaPenalizacion*j.similarity/numIteraciones)
-                #medianFitness, medianSimilarity = evaluatePop(i)
-                #if ticks < 1000:
-                #    print("Fitness " + str(medianFitness) + " Similarity " + str(medianSimilarity))
                 if i.memory != None:
                     i.memory.fitness = i.memory.fitness - i.memory.similarity
 
@@ -708,7 +698,7 @@ while(True):
                 fitnessHistory.append(-1)
                 similarityHistory.append(-1)
             #Evaporamos la feromona de las poblaciones
-            i.evaporate(evaporationRate)
+            i.evaporate(evaporationRate)    
             i.fitnessHistory.append(medianFitness)       
             i.similarityHistory.append(medianSimilarity)             
         
@@ -720,25 +710,6 @@ while(True):
         
         #Realizamos la seleccion de padres
         for i in models:
-
-            
-            #antes de ejecutar esto DEBERIAMOS EVALUAR LA FUNCION DE PENALIZACION
-            '''
-            medianFitness, medianSimilarity = evaluatePop(i) # se modifico para incluir similarity
-            if ataqueModel == None:
-                fitnessHistory.append(-1)
-                similarityHistory.append(-1)
-            #Evaporamos la feromona de las poblaciones
-            i.evaporate(evaporationRate)
-            i.fitnessHistory.append(medianFitness)       
-            i.similarityHistory.append(medianSimilarity)  
-            
-            if not i.repose and i.timeActive>=100:
-                if attack(i.fitnessHistory) and ticks > newMemory*2:
-                    print("EN ATAQUE "+str(i.alertLevel)+" "+i.type+" "+str(i.timeActive))
-                    i.addFeromone(feromoneAdded)
-            '''
-
             if not i.repose:
                 parentsSize = int(len(i.population)*(1-percentageElitism))*2
                 parents = i.selectParents(parentsSize if parentsSize%2==0 else parentsSize+1)
